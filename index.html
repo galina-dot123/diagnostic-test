@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Диагностика внутренней опоры</title>
+  <meta name="description" content="Экзистенциальная диагностика внутренней опоры на основе 4 фундаментальных мотиваций Лэнгле" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+    body { font-family: 'Inter', sans-serif; margin: 0; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo, useEffect } = React;
+
+    // Lucide icon components as simple SVG wrappers
+    const createIcon = (iconName) => {
+      return ({ size = 24, strokeWidth = 2, fill = 'none', className = '' }) => {
+        const ref = React.useRef(null);
+        useEffect(() => {
+          if (ref.current) {
+            ref.current.innerHTML = '';
+            const el = lucide.createElement(lucide.icons[iconName]);
+            el.setAttribute('width', size);
+            el.setAttribute('height', size);
+            el.setAttribute('stroke-width', strokeWidth);
+            if (fill !== 'none') el.setAttribute('fill', fill);
+            if (className) {
+              className.split(' ').forEach(c => { if(c) el.classList.add(c); });
+            }
+            ref.current.appendChild(el);
+          }
+        }, [size, strokeWidth, fill, className]);
+        return <span ref={ref} style={{display: 'inline-flex', verticalAlign: 'middle'}} className={className}></span>;
+      };
+    };
+
+    const ChevronRight = createIcon('chevron-right');
+    const ChevronLeft = createIcon('chevron-left');
+    const ClipboardList = createIcon('clipboard-list');
+    const Shield = createIcon('shield');
+    const Heart = createIcon('heart');
+    const Target = createIcon('target');
+    const Zap = createIcon('zap');
+    const Moon = createIcon('moon');
+    const ArrowRight = createIcon('arrow-right');
+    const Copy = createIcon('copy');
+    const CheckCircle = createIcon('check-circle');
+    const Info = createIcon('info');
+    const Star = createIcon('star');
+    const AlertCircle = createIcon('alert-circle');
+    const User = createIcon('user');
+
+    // --- НАСТРОЙКИ — ВАША ССЫЛКА ---
+    const CONSULTANT_LINK = "https://t.me/Cto_posejash"; 
+    // ------------------------------------
+
+    const App = () => {
+      const [step, setStep] = useState('intro');
+      const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
+      const [answers, setAnswers] = useState({});
+      const [copied, setCopied] = useState(false);
+
+      const blocks = [
+        {
+          id: 'chaos',
+          title: 'БЛОК 1. ВНУТРЕННИЙ ХАОС',
+          questions: [
+            "У меня в голове одновременно присутствуют противоположные мысли (\"надо\" и \"хочу\").",
+            "Я часто сомневаюсь, даже после принятого решения.",
+            "Я прокручиваю ситуации в голове снова и снова.",
+            "Мне трудно понять, что я действительно чувствую.",
+            "Я знаю, как правильно поступить, но не делаю этого.",
+            "В стрессовых ситуациях я теряю ясность и начинаю метаться.",
+            "Я застреваю в анализе и откладываю действия.",
+            "Внутри есть ощущение \"я не знаю, как правильно жить\".",
+            "Мне сложно удерживать фокус — я переключаюсь с одного на другое.",
+            "Я чувствую внутренний конфликт между разными частями себя."
+          ]
+        },
+        {
+          id: 'm1',
+          title: 'Мотивация 1 — Могу ли я быть? (Безопасность)',
+          questions: [
+            "Я часто ощущаю фоновое напряжение, даже когда всё спокойно.",
+            "Мне трудно расслабиться — я всегда настороже.",
+            "Я ожидаю подвох даже там, где его нет.",
+            "Когда что-то идёт не по плану, я теряю устойчивость.",
+            "Мне важно всё контролировать, чтобы чувствовать себя в безопасности.",
+            "В глубине я не чувствую, что \"мир меня выдержит\"."
+          ]
+        },
+        {
+          id: 'm2',
+          title: 'Мотивация 2 — Хочу ли я жить? (Витальность)',
+          isInverted: true,
+          questions: [
+            "Я чувствую, что моя жизнь действительно имеет для меня ценность.",
+            "У меня есть моменты живого интереса и радости.",
+            "Я позволяю себе переживать удовольствие без чувства вины.",
+            "Я чувствую эмоциональный отклик на происходящее.",
+            "Я могу выдерживать боль, не обесценивая жизнь.",
+            "В глубине я хочу жить, а не просто функционировать."
+          ]
+        },
+        {
+          id: 'm3',
+          title: 'Мотивация 3 — Имею ли я право быть собой? (Самость)',
+          questions: [
+            "Мне важно одобрение других для ощущения уверенности.",
+            "Я подстраиваюсь под людей, даже если это не подходит мне.",
+            "Я боюсь разочаровать близких.",
+            "Мне трудно открыто говорить «нет».",
+            "Я часто думаю о том, как выгляжу в глазах других.",
+            "Иногда я не понимаю, чего хочу я сама."
+          ]
+        },
+        {
+          id: 'm4',
+          title: 'Мотивация 4 — Для чего я живу? (Смысл)',
+          isInverted: true,
+          questions: [
+            "Я понимаю, ради чего мне стоит вставать по утрам.",
+            "В моих действиях есть ощущение направления.",
+            "Я чувствую, что мои решения принадлежат мне.",
+            "Я могу сказать «да» важному, даже если страшно.",
+            "Я ощущаю, что живу по своему пути.",
+            "Я чувствую ответственность за смысл своей жизни."
+          ]
+        },
+        {
+          id: 'patterns',
+          title: 'БЛОК 3. ПАТТЕРНЫ',
+          questions: [
+            "В моей жизни повторяются похожие ситуации.",
+            "В конфликтах я реагирую почти одинаково.",
+            "Я выбираю людей/проекты, которые приводят к знакомому разочарованию.",
+            "У меня есть \"привычный сценарий\", от которого трудно уйти.",
+            "Я делаю то, что мне вредит, даже понимая это.",
+            "После реакции я думаю: \"зачем я так?\".",
+            "Мне проще избегать, чем действовать напрямую.",
+            "Я часто возвращаюсь в знакомую роль (контролёр, спасатель и т.д.)."
+          ]
+        },
+        {
+          id: 'shadow',
+          title: 'БЛОК 4. ТЕНЬ',
+          questions: [
+            "Мне трудно признать свою агрессию.",
+            "Я осуждаю в других то, что не позволяю себе.",
+            "Я чувствую стыд за свои желания или амбиции.",
+            "Я стараюсь быть \"хорошей\", чтобы избежать отвержения.",
+            "Мне сложно прямо просить о том, что мне нужно.",
+            "Я делаю вид, что мне всё равно, хотя это не так."
+          ]
+        }
+      ];
+
+      const handleAnswer = (questionId, value) => {
+        setAnswers(prev => ({ ...prev, [questionId]: value }));
+      };
+
+      const results = useMemo(() => {
+        const scores = {};
+        blocks.forEach(block => {
+          let total = 0;
+          block.questions.forEach((_, idx) => {
+            const val = answers[`${block.id}_${idx}`] || 0;
+            if (block.isInverted) total += (6 - val);
+            else total += val;
+          });
+          scores[block.id] = total;
+        });
+        return scores;
+      }, [answers]);
+
+      const interpret = useMemo(() => {
+        const getLevel = (s, low, mid) => s <= low ? "опора" : s <= mid ? "напряжение" : "дефицит";
+        return {
+          chaosText: results.chaos < 20 ? "низкий" : results.chaos < 35 ? "средний" : "высокий",
+          m1Level: getLevel(results.m1, 12, 20),
+          m2Level: getLevel(results.m2, 12, 20),
+          m3Level: getLevel(results.m3, 12, 20),
+          m4Level: getLevel(results.m4, 12, 20),
+          patternsLevel: results.patterns <= 15 ? "слабые" : results.patterns <= 27 ? "устойчивые" : "доминирующие",
+          shadowLevel: results.shadow <= 12 ? "осознаётся" : results.shadow <= 20 ? "частично вытеснена" : "выраженная теневая динамика"
+        };
+      }, [results]);
+
+      const copyResults = () => {
+        const text = `Результаты диагностики:
+1. Хаос: ${results.chaos}/50 (${interpret.chaosText})
+2. Мотивации (M1-M4): ${results.m1}, ${results.m2}, ${results.m3}, ${results.m4}
+3. Паттерны: ${results.patterns}/40 (${interpret.patternsLevel})
+4. Тень: ${results.shadow}/30 (${interpret.shadowLevel})`;
+        
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+        document.body.removeChild(textArea);
+      };
+
+      useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, [currentBlockIndex, step]);
+
+      if (step === 'intro') {
+        return (
+          <div className="min-h-screen bg-[#fafafa] flex items-center justify-center p-4 font-sans text-[#1a1a1a]">
+            <div className="max-w-2xl w-full bg-white rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden p-8 md:p-16 border border-slate-100">
+              <div className="flex justify-center mb-10">
+                <div className="p-6 bg-[#1a1a1a] rounded-3xl text-white shadow-2xl transform -rotate-2">
+                  <ClipboardList size={48} strokeWidth={1.5} />
+                </div>
+              </div>
+              <h1 className="text-3xl md:text-5xl font-light text-center mb-8 tracking-tight leading-[1.1]">
+                Диагностика <br/><span className="font-semibold text-slate-800">внутренней опоры</span>
+              </h1>
+              <div className="space-y-6 text-slate-500 leading-relaxed mb-12 text-center text-lg font-light">
+                <p className="text-slate-900 font-normal italic">Внутренний раздрай — это не «характер» и не «карма».</p>
+                <p>Это нарушенная конструкция личности. Я разработала диагностику, основанную на 4 фундаментальных мотивациях Лэнгле, работе с паттернами и теневой динамикой.</p>
+                <div className="grid grid-cols-2 gap-3 mt-10">
+                  {[
+                    { icon: <Zap size={18}/>, text: 'Уровень хаоса' },
+                    { icon: <Shield size={18}/>, text: 'Состояние опор' },
+                    { icon: <Target size={18}/>, text: 'Ваши сценарии' },
+                    { icon: <Moon size={18}/>, text: 'Зона вытеснения' }
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 transition-all hover:border-slate-300">
+                      <span className="text-slate-400">{item.icon}</span>
+                      <span className="text-sm font-medium text-slate-700">{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <button 
+                onClick={() => setStep('test')}
+                className="w-full bg-[#1a1a1a] text-white py-6 rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-3 group shadow-xl text-xl"
+              >
+                Начать диагностику
+                <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      if (step === 'test') {
+        const currentBlock = blocks[currentBlockIndex];
+        const isBlockComplete = currentBlock.questions.every((_, idx) => answers[`${currentBlock.id}_${idx}`]);
+
+        return (
+          <div className="min-h-screen bg-[#fafafa] p-4 md:p-12 font-sans text-[#1a1a1a]">
+            <div className="max-w-3xl mx-auto">
+              {/* Легенда */}
+              <div className="bg-white border-2 border-slate-900 p-6 mb-10 rounded-3xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+                 <div className="flex items-center gap-3 text-slate-900 font-bold uppercase tracking-widest text-xs">
+                   <Star size={18} fill="currentColor"/> Инструкция:
+                 </div>
+                 <div className="flex flex-wrap justify-center gap-3 md:gap-4 text-[11px] font-bold uppercase text-slate-400">
+                   {[
+                     { v: 1, t: 'Совсем нет' },
+                     { v: 2, t: 'Редко' },
+                     { v: 3, t: 'Иногда' },
+                     { v: 4, t: 'Часто' },
+                     { v: 5, t: 'Всегда' }
+                   ].map(l => (
+                     <span key={l.v} className="bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-100 text-slate-900 shadow-sm">
+                       {l.v} — {l.t}
+                     </span>
+                   ))}
+                 </div>
+              </div>
+
+              <div className="mb-10 flex items-center justify-between">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] block">Раздел {currentBlockIndex + 1} / {blocks.length}</span>
+                  <h2 className="text-3xl font-light text-slate-900 leading-tight">{currentBlock.title}</h2>
+                </div>
+                <div className="hidden md:block w-32 h-1 bg-slate-200 rounded-full overflow-hidden">
+                   <div className="h-full bg-black transition-all duration-700" style={{width: `${((currentBlockIndex + 1) / blocks.length) * 100}%`}}></div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {currentBlock.questions.map((q, idx) => (
+                  <div key={idx} className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm transition-all hover:shadow-xl hover:border-slate-200">
+                    <p className="text-slate-800 mb-8 font-light text-xl leading-relaxed">{q}</p>
+                    <div className="flex justify-between gap-2 md:gap-4">
+                      {[1, 2, 3, 4, 5].map(val => (
+                        <button
+                          key={val}
+                          onClick={() => handleAnswer(`${currentBlock.id}_${idx}`, val)}
+                          className={`flex-1 py-5 rounded-2xl border-2 transition-all font-bold text-xl ${
+                            answers[`${currentBlock.id}_${idx}`] === val 
+                            ? 'bg-[#1a1a1a] text-white border-slate-900 scale-105 shadow-2xl' 
+                            : 'bg-white text-slate-300 border-slate-50 hover:border-slate-200 hover:text-slate-500'
+                          }`}
+                        >
+                          {val}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-16 flex justify-between items-center gap-6">
+                <button onClick={() => setCurrentBlockIndex(prev => Math.max(0, prev - 1))} className={`px-10 py-5 rounded-2xl font-bold transition-all text-lg ${currentBlockIndex === 0 ? 'invisible' : 'text-slate-400 hover:text-slate-900'}`}>
+                  <ChevronLeft size={24} className="inline mr-2"/> Назад
+                </button>
+                <button
+                  disabled={!isBlockComplete}
+                  onClick={() => {
+                    if (currentBlockIndex < blocks.length - 1) setCurrentBlockIndex(prev => prev + 1);
+                    else setStep('results');
+                  }}
+                  className={`px-14 py-5 rounded-2xl shadow-2xl font-bold transition-all text-xl ${!isBlockComplete ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-[#1a1a1a] text-white hover:bg-black hover:-translate-y-1'}`}
+                >
+                  {currentBlockIndex === blocks.length - 1 ? 'Завершить' : 'Далее'} <ChevronRight size={24} className="inline ml-2"/>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen bg-[#fafafa] p-4 md:p-12 font-sans text-[#1a1a1a]">
+          <div className="max-w-4xl mx-auto bg-white rounded-[4rem] shadow-[0_50px_100px_rgba(0,0,0,0.08)] overflow-hidden border border-slate-100">
+            <div className="bg-[#1a1a1a] text-white p-12 md:p-20 text-center relative">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-slate-800 rounded-full blur-[100px] opacity-20"></div>
+              <h2 className="text-xs font-black uppercase tracking-[0.6em] opacity-40 mb-4 relative z-10">Экзистенциальный отчет</h2>
+              <h1 className="text-4xl md:text-6xl font-light tracking-tight relative z-10 leading-none">Ваша текущая <br/><span className="font-semibold italic">конструкция</span></h1>
+            </div>
+            
+            <div className="p-8 md:p-20 space-y-20">
+              
+              {/* Хаос */}
+              <section className="relative">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-900 shadow-sm"><Zap size={24}/></div>
+                  <h3 className="text-3xl font-light tracking-tight">Внутренний хаос: <span className="font-semibold italic">{interpret.chaosText}</span></h3>
+                </div>
+                <div className="bg-slate-50 p-10 rounded-[3rem] border-l-[12px] border-slate-900">
+                  <p className="text-slate-600 leading-relaxed font-light text-xl">
+                     {results.chaos > 34 
+                       ? "Ваша система находится в состоянии критического перегрева. Мысли и чувства настолько противоречат друг другу, что «Я» тратит все ресурсы просто на попытку удержать структуру. Это состояние высокого риска выгорания."
+                       : results.chaos > 19
+                       ? "Вы находитесь в состоянии «фонового шума». Жить можно, но на каждое решение тратится в три раза больше энергии, чем требуется. Вы часто застреваете в анализе там, где нужно просто действовать."
+                       : "Ваша внутренняя навигация работает чисто. Хаос минимален, что дает вам ясную видимость целей и своих истинных желаний."}
+                  </p>
+                </div>
+              </section>
+
+              {/* Мотивации */}
+              <section className="space-y-12">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-900 shadow-sm"><Shield size={24}/></div>
+                  <h3 className="text-3xl font-light tracking-tight">Фундаментальные опоры</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {[
+                    { l: 'Безопасность', s: interpret.m1Level, d: 'Фундамент. Если здесь дефицит — мир кажется опасным, а вы всегда в режиме выживания.', icon: <Shield size={16}/> },
+                    { l: 'Витальность', s: interpret.m2Level, d: 'Энергия. Если здесь напряжение — вы «функционируете», но не чувствуете вкуса жизни.', icon: <Heart size={16}/> },
+                    { l: 'Самость', s: interpret.m3Level, d: 'Ваше «Я». Дефицит здесь заставляет подстраиваться под других, теряя свою уникальность.', icon: <User size={16}/> },
+                    { l: 'Смысл', s: interpret.m4Level, d: 'Направление. Без опоры здесь жизнь превращается в броуновское движение без цели.', icon: <Target size={16}/> }
+                  ].map((m, i) => (
+                    <div key={m.l} className="p-8 border-2 border-slate-50 rounded-[2.5rem] hover:bg-slate-50 transition-all group">
+                      <div className="flex justify-between items-center mb-6">
+                        <div className="flex items-center gap-2">
+                           <span className="text-slate-300 group-hover:text-slate-900 transition-colors">{m.icon}</span>
+                           <span className="text-lg font-bold text-slate-800">{m.l}</span>
+                        </div>
+                        <span className={`text-[10px] px-3 py-1.5 rounded-full uppercase font-black tracking-widest ${
+                          m.s === 'опора' ? 'bg-green-100 text-green-700' : 
+                          m.s === 'напряжение' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                        }`}>{m.s}</span>
+                      </div>
+                      <p className="text-sm text-slate-500 leading-relaxed font-light">{m.d}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Паттерны и Тень */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                 <section className="space-y-6">
+                    <div className="flex items-center gap-3">
+                       <Target size={20} className="text-slate-400"/>
+                       <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">Паттерны поведения</h4>
+                    </div>
+                    <div className="p-10 bg-slate-50 rounded-[3rem] border border-slate-100">
+                       <div className="text-2xl font-semibold mb-4 text-slate-900 uppercase italic tracking-tighter">{interpret.patternsLevel}</div>
+                       <p className="text-slate-500 font-light text-sm leading-relaxed">
+                          {results.patterns > 27 
+                            ? "Ваши сценарии доминируют над вами. Вы раз за разом наступаете на те же грабли, осознавая это постфактум. Это автоматизм, который нужно разрывать в терапии."
+                            : results.patterns > 15
+                            ? "Паттерны устойчивы. У вас есть знакомые «ловушки», в которые вы попадаете в стрессе. Вы их узнаете, но не всегда можете изменить реакцию."
+                            : "Вы достаточно гибки. Паттерны не управляют вашим выбором, вы способны на спонтанные и новые реакции."}
+                       </p>
+                    </div>
+                 </section>
+                 <section className="space-y-6">
+                    <div className="flex items-center gap-3">
+                       <Moon size={20} className="text-slate-400"/>
+                       <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">Теневая динамика</h4>
+                    </div>
+                    <div className="p-10 bg-slate-50 rounded-[3rem] border border-slate-100">
+                       <div className="text-2xl font-semibold mb-4 text-slate-900 uppercase italic tracking-tighter">{interpret.shadowLevel}</div>
+                       <p className="text-slate-500 font-light text-sm leading-relaxed">
+                          {results.shadow > 20 
+                            ? "Огромная часть вашей энергии уходит на подавление «неудобных» чувств (агрессия, стыд, желания). Эта часть живет своей жизнью и создает внутреннее напряжение."
+                            : results.shadow > 12
+                            ? "Тень частично вытеснена. Вы иногда сталкиваетесь со своими сторонами, которые вам не нравятся, и пытаетесь их спрятать или оправдать."
+                            : "Вы в хорошем контакте со своей Тенью. Вы признаете свои импульсы и чувства, не пытаясь казаться «только хорошим»."}
+                       </p>
+                    </div>
+                 </section>
+              </div>
+
+              {/* Связка */}
+              <section className="bg-slate-900 text-white p-12 md:p-16 rounded-[4rem] shadow-2xl relative overflow-hidden">
+                <div className="absolute bottom-0 right-0 w-64 h-64 bg-slate-800 rounded-full blur-[80px] opacity-30 translate-x-1/2 translate-y-1/2"></div>
+                <h3 className="text-3xl font-light mb-8 relative z-10 italic">Механизм вашего «раздрая»</h3>
+                <p className="text-slate-400 font-light text-xl leading-relaxed relative z-10">
+                  Ваш профиль показывает: {interpret.m1Level === 'дефицит' ? 'отсутствие базовой безопасности' : 'напряжение в конструкции'} и {interpret.patternsLevel} паттерны создают «экзистенциальную трещину». 
+                  Вы тратите жизнь на поддержание фасада, пока внутри растет хаос. Это не вопрос силы воли — это вопрос <strong>конструкции</strong>, которую нужно пересобрать.
+                </p>
+              </section>
+
+              {/* Финальный блок */}
+              <section className="pt-10">
+                <div className="max-w-2xl mx-auto text-center space-y-12">
+                   <div className="space-y-4">
+                      <div className="inline-flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest text-slate-600">
+                         <AlertCircle size={14}/> Что делать дальше?
+                      </div>
+                      <p className="text-2xl md:text-3xl font-light text-slate-900 leading-tight">Вы видите механизм — но не видите еще, <span className="font-bold">как его пересобрать</span>.</p>
+                      <p className="text-slate-400 font-light text-lg">Самостоятельно изменить структуру трудно, потому что паттерны и тень работают автоматически.</p>
+                   </div>
+
+                   <div className="bg-slate-50 p-10 rounded-[3rem] border-2 border-dashed border-slate-200">
+                      <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="text-center md:text-left">
+                          <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-2">Отправьте эти данные эксперту</h4>
+                          <p className="text-xs text-slate-400">Это поможет сделать разбор вашего профиля максимально точным.</p>
+                        </div>
+                        <button 
+                          onClick={copyResults}
+                          className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-bold transition-all shadow-xl ${copied ? 'bg-green-500 text-white scale-105' : 'bg-slate-900 text-white hover:bg-black'}`}
+                        >
+                          {copied ? <CheckCircle size={20}/> : <Copy size={20}/>}
+                          {copied ? 'Готово' : 'Копировать отчет'}
+                        </button>
+                      </div>
+                   </div>
+
+                   <button 
+                    onClick={() => window.open(CONSULTANT_LINK, '_blank')}
+                    className="w-full bg-[#1a1a1a] text-white py-8 rounded-[2.5rem] font-bold hover:bg-black transition-all flex items-center justify-center gap-5 group text-2xl shadow-[0_30px_60px_rgba(0,0,0,0.2)]"
+                  >
+                    РАЗОБРАТЬ ПРОФИЛЬ СО МНОЙ
+                    <ArrowRight size={32} className="group-hover:translate-x-2 transition-transform" />
+                  </button>
+                  <p className="text-xs text-slate-400 uppercase tracking-[0.2em] font-bold">Персональный экзистенциальный разбор</p>
+                </div>
+              </section>
+            </div>
+            
+            <div className="bg-slate-50 p-10 text-center border-t border-slate-100">
+              <button onClick={() => window.location.reload()} className="text-slate-300 hover:text-slate-600 text-xs font-black uppercase tracking-[0.4em] transition-colors">
+                Пройти повторно
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
