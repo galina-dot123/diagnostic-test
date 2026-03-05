@@ -28,26 +28,39 @@
   <script type="text/babel">
     const { useState, useMemo, useEffect } = React;
 
-    // Lucide icon components — render SVG from lucide icon data
-    const buildSvgString = (iconData, size, strokeWidth, fillVal) => {
-      const renderNode = (node) => {
-        const tag = node[0];
-        const attrs = node[1] || {};
-        const children = node.slice(2);
-        let attrStr = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
-        if (children.length === 0) return `<${tag} ${attrStr}/>`;
-        return `<${tag} ${attrStr}>${children.map(renderNode).join('')}</${tag}>`;
-      };
-      const innerSvg = iconData.map(renderNode).join('');
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${fillVal}" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">${innerSvg}</svg>`;
-    };
-
+    // Lucide icon components — DOM-based SVG rendering via refs
     const createIcon = (iconName) => {
       return ({ size = 24, strokeWidth = 2, fill = 'none', className = '' }) => {
-        const iconData = lucide.icons[iconName];
-        if (!iconData) return <span className={className}>?</span>;
-        const svgStr = buildSvgString(iconData, size, strokeWidth, fill);
-        return <span style={{ display: 'inline-flex', verticalAlign: 'middle' }} className={className} dangerouslySetInnerHTML={{ __html: svgStr }}></span>;
+        const ref = React.useRef(null);
+        const built = React.useRef(false);
+        useEffect(() => {
+          if (ref.current && !built.current && window.lucide && window.lucide.icons) {
+            const iconData = window.lucide.icons[iconName];
+            if (iconData) {
+              built.current = true;
+              const ns = 'http://www.w3.org/2000/svg';
+              const svg = document.createElementNS(ns, 'svg');
+              svg.setAttribute('xmlns', ns);
+              svg.setAttribute('width', String(size));
+              svg.setAttribute('height', String(size));
+              svg.setAttribute('viewBox', '0 0 24 24');
+              svg.setAttribute('fill', fill);
+              svg.setAttribute('stroke', 'currentColor');
+              svg.setAttribute('stroke-width', String(strokeWidth));
+              svg.setAttribute('stroke-linecap', 'round');
+              svg.setAttribute('stroke-linejoin', 'round');
+              iconData.forEach(function (node) {
+                const tag = node[0];
+                const attrs = node[1] || {};
+                const el = document.createElementNS(ns, tag);
+                Object.entries(attrs).forEach(function (pair) { el.setAttribute(pair[0], pair[1]); });
+                svg.appendChild(el);
+              });
+              ref.current.appendChild(svg);
+            }
+          }
+        });
+        return <span ref={ref} style={{ display: 'inline-flex', verticalAlign: 'middle' }} className={className}></span>;
       };
     };
 
@@ -312,8 +325,8 @@
                           key={val}
                           onClick={() => handleAnswer(`${currentBlock.id}_${idx}`, val)}
                           className={`flex-1 py-5 rounded-2xl border-2 transition-all font-bold text-xl ${answers[`${currentBlock.id}_${idx}`] === val
-                              ? 'bg-[#1a1a1a] text-white border-slate-900 scale-105 shadow-2xl'
-                              : 'bg-white text-slate-300 border-slate-50 hover:border-slate-200 hover:text-slate-500'
+                            ? 'bg-[#1a1a1a] text-white border-slate-900 scale-105 shadow-2xl'
+                            : 'bg-white text-slate-300 border-slate-50 hover:border-slate-200 hover:text-slate-500'
                             }`}
                         >
                           {val}
@@ -392,7 +405,7 @@
                           <span className="text-lg font-bold text-slate-800">{m.l}</span>
                         </div>
                         <span className={`text-[10px] px-3 py-1.5 rounded-full uppercase font-black tracking-widest ${m.s === 'опора' ? 'bg-green-100 text-green-700' :
-                            m.s === 'напряжение' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                          m.s === 'напряжение' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
                           }`}>{m.s}</span>
                       </div>
                       <p className="text-sm text-slate-500 leading-relaxed font-light">{m.d}</p>
